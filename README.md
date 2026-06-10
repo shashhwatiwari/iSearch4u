@@ -1,4 +1,4 @@
-# iSearch4u — Multi-Agent Research Assistant
+# iSearch4u - Multi-Agent Research Assistant
 
 A local research assistant that ingests your documents, stores them in a vector database, and answers questions using a multi-agent LangGraph pipeline. Callable from Claude Desktop via MCP.
 
@@ -9,10 +9,10 @@ A local research assistant that ingests your documents, stores them in a vector 
 1. You drop `.md` files into a `docs/` folder and run the ingestion script
 2. Documents are chunked, embedded, and stored persistently in ChromaDB
 3. When you ask a question, a 4-node agent pipeline runs:
-   - **Planner** — breaks your question into focused sub-queries
-   - **Retriever** — searches ChromaDB for relevant chunks
-   - **Synthesizer** — writes a grounded answer using only the retrieved context
-   - **Critic** — evaluates the answer and loops back to Retriever if quality is poor
+   - **Planner** - breaks your question into focused sub-queries
+   - **Retriever** - searches ChromaDB for relevant chunks
+   - **Synthesizer** - writes a grounded answer using only the retrieved context
+   - **Critic** - evaluates the answer and loops back to Retriever if quality is poor
 4. The whole pipeline is exposed as an MCP tool, callable from Claude Desktop
 
 ---
@@ -47,7 +47,7 @@ iSearch4u/
 │   ├── looped_call.py    # Multi-turn chat loop
 │   └── tool_agent.py     # Tool-use agent loop from scratch
 ├── docs/                 # Drop your .md files here
-├── mcp_server.py         # MCP server — wraps the pipeline as a tool
+├── mcp_server.py         # MCP server - wraps the pipeline as a tool
 ├── .env.example          # Environment variable template
 └── .gitignore
 ```
@@ -118,18 +118,18 @@ Find your Python path with `which python3`. Restart Claude Desktop after saving.
 ```
 User question
       ↓
-  [ Planner ]   — asks LLM to generate 1-3 focused sub-queries
+  [ Planner ]   - asks LLM to generate 1-3 focused sub-queries
       ↓
-  [ Retriever ] — embeds each sub-query, searches ChromaDB, deduplicates chunks
+  [ Retriever ] - embeds each sub-query, searches ChromaDB, deduplicates chunks
       ↓
-  [ Synthesizer ] — answers using only retrieved context
+  [ Synthesizer ] - answers using only retrieved context
       ↓
-  [ Critic ]    — verdict: GOOD → done | BAD → loop back to Retriever (max 3 iterations)
+  [ Critic ]    - verdict: GOOD → done | BAD → loop back to Retriever (max 3 iterations)
       ↓
    Answer
 ```
 
-State flows through every node as a typed dictionary — each node reads what it needs and writes back only what it produced.
+State flows through every node as a typed dictionary - each node reads what it needs and writes back only what it produced.
 
 ---
 
