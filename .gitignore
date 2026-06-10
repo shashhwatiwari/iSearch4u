@@ -29,3 +29,6 @@ __pycache__/
 # Build artifacts
 dist/
 build/
+
+# ChromaDB — large binary data, not meant for version control
+chroma_db/
