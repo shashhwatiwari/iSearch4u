@@ -170,3 +170,34 @@ if __name__ == "__main__":
     })
 
     print("\n" + result["answer"])
+
+def build_graph_for_collection(collection_name: str):
+    """Build a graph that searches a specific session collection."""
+    session_collection = chroma_client.get_collection(name=collection_name)
+
+    def session_retriever(state):
+        sub_queries = state["sub_queries"]
+        all_chunks, seen = [], set()
+        for query in sub_queries:
+            embedding = embedder.encode(query).tolist()
+            results = session_collection.query(query_embeddings=[embedding], n_results=3)
+            for chunk in results["documents"][0]:
+                if chunk not in seen:
+                    seen.add(chunk)
+                    all_chunks.append(chunk)
+        return {"retrieved_chunks": all_chunks}
+
+    graph = StateGraph(ResearchState)
+    graph.add_node("planner",     planner)
+    graph.add_node("retriever",   session_retriever)
+    graph.add_node("synthesizer", synthesizer)
+    graph.add_node("critic",      critic)
+    graph.set_entry_point("planner")
+    graph.add_edge("planner",     "retriever")
+    graph.add_edge("retriever",   "synthesizer")
+    graph.add_edge("synthesizer", "critic")
+    graph.add_conditional_edges("critic", should_continue, {
+        "retriever": "retriever",
+        "end":       END
+    })
+    return graph.compile()

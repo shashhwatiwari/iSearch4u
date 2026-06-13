@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>iSearch4u</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f0f0f;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    h1 { font-size: 1.8rem; margin-bottom: 8px; color: #fff; }
+    p.subtitle { color: #888; margin-bottom: 40px; font-size: 0.95rem; }
+
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 12px;
+      padding: 28px;
+      width: 100%;
+      max-width: 640px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 { font-size: 1rem; color: #aaa; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    .upload-area {
+      border: 2px dashed #333;
+      border-radius: 8px;
+      padding: 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .upload-area:hover { border-color: #666; }
+    .upload-area input { display: none; }
+
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background 0.2s;
+    }
+    button:hover { background: #1d4ed8; }
+    button:disabled { background: #333; color: #666; cursor: not-allowed; }
+
+    .session-badge {
+      display: none;
+      background: #052e16;
+      border: 1px solid #166534;
+      color: #4ade80;
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 0.8rem;
+      margin-top: 12px;
+      word-break: break-all;
+    }
+
+    .chat-box {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 200px;
+      margin-bottom: 16px;
+    }
+
+    .message {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      max-width: 90%;
+    }
+    .message.user { background: #1e3a5f; align-self: flex-end; }
+    .message.assistant { background: #1a1a1a; border: 1px solid #2a2a2a; align-self: flex-start; }
+    .message.error { background: #3b0f0f; border: 1px solid #7f1d1d; color: #fca5a5; }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #e0e0e0;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    input[type="text"]:focus { border-color: #2563eb; }
+    input[type="text"]::placeholder { color: #555; }
+
+    .thinking { color: #555; font-style: italic; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+
+  <h1>iSearch4u</h1>
+  <p class="subtitle">Upload a document. Ask anything about it.</p>
+
+  <!-- Upload card -->
+  <div class="card">
+    <h2>1. Upload your document</h2>
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+      <input type="file" id="fileInput" accept=".md,.pdf" onchange="handleFileSelect()" />
+      <p id="uploadLabel">Click to select a PDF or Markdown file</p>
+    </div>
+    <button id="uploadBtn" onclick="uploadFile()" disabled>Upload</button>
+    <div class="session-badge" id="sessionBadge"></div>
+  </div>
+
+  <!-- Chat card -->
+  <div class="card">
+    <h2>2. Ask questions</h2>
+    <div class="chat-box" id="chatBox">
+      <p class="thinking">Upload a document to start asking questions.</p>
+    </div>
+    <div class="input-row">
+      <input type="text" id="questionInput" placeholder="Ask something about your document..." disabled
+             onkeydown="if(event.key==='Enter') ask()" />
+      <button id="askBtn" onclick="ask()" disabled>Ask</button>
+    </div>
+  </div>
+
+  <script>
+    const API = "http://localhost:8000";  // change to your Railway URL when deployed
+    let sessionId = null;
+
+    function handleFileSelect() {
+      const file = document.getElementById("fileInput").files[0];
+      if (file) {
+        document.getElementById("uploadLabel").textContent = `Selected: ${file.name}`;
+        document.getElementById("uploadBtn").disabled = false;
+      }
+    }
+
+    async function uploadFile() {
+      const file = document.getElementById("fileInput").files[0];
+      if (!file) return;
+
+      const btn = document.getElementById("uploadBtn");
+      btn.disabled = true;
+      btn.textContent = "Uploading...";
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const res = await fetch(`${API}/ingest`, { method: "POST", body: formData });
+        const data = await res.json();
+        sessionId = data.session_id;
+
+        const badge = document.getElementById("sessionBadge");
+        badge.style.display = "block";
+        badge.textContent = `Session ready — ${data.chunks_stored} chunks stored`;
+
+        document.getElementById("questionInput").disabled = false;
+        document.getElementById("askBtn").disabled = false;
+        document.getElementById("chatBox").innerHTML = "";
+        btn.textContent = "Uploaded";
+
+      } catch (err) {
+        btn.textContent = "Upload failed";
+        btn.disabled = false;
+        console.error(err);
+      }
+    }
+
+    async function ask() {
+      const input = document.getElementById("questionInput");
+      const question = input.value.trim();
+      if (!question || !sessionId) return;
+
+      addMessage(question, "user");
+      input.value = "";
+
+      const thinking = addMessage("Thinking...", "thinking");
+      document.getElementById("askBtn").disabled = true;
+
+      try {
+        const res = await fetch(`${API}/ask`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId, question })
+        });
+        const data = await res.json();
+        thinking.remove();
+        addMessage(data.answer, "assistant");
+
+      } catch (err) {
+        thinking.remove();
+        addMessage("Something went wrong. Is the backend running?", "error");
+      }
+
+      document.getElementById("askBtn").disabled = false;
+    }
+
+    function addMessage(text, type) {
+      const box = document.getElementById("chatBox");
+      const div = document.createElement("div");
+      div.className = `message ${type}`;
+      div.textContent = text;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+      return div;
+    }
+  </script>
+
+</body>
+</html>
